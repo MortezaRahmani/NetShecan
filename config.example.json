@@ -1,0 +1,37 @@
+{
+  "provider": "irancell",
+  "providers": {
+    "irancell": {
+      "authorization": "<Paste your Irancell access token>",
+      "x_authorization_extra": "<Paste your Irancell refresh token>",
+      "include_additional_packages": false,
+      "client_id": "<client_id>",
+      "client_secret": "<client_secret>",
+      "client_version": "9.77.1",
+      "device_name": "Web Windows 10",
+      "installation_id": "<uuid>",
+      "accept": "application/json, text/plain, */*",
+      "accept_language": "fa"
+    },
+    "shatel": {
+      "refresh_token": "<Paste your Shatel refresh token>",
+      "access_token": "<auto-filled on first refresh>",
+      "include_additional_packages": true,
+      "client_id": "MyShatelB2cWeb"
+    },
+    "mci": {
+      "username": "<phone number without leading 0, e.g. 9121112233>",
+      "refresh_token": "<Paste your MCI refresh token>",
+      "access_token": "<auto-filled on first refresh>",
+      "include_additional_packages": false,
+      "version": "1.31.8",
+      "platform": "WEB",
+      "accept_language": "en-GB"
+    }
+  },
+  "poll_seconds": 300,
+  "minimize_to_tray": true,
+  "check_shecan": true,
+  "usage_threshold_mb": 300,
+  "shecan_url": "https://ddns.shecan.ir/update?password=1111111111111111"
+}

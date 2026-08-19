@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "NetShecan Helper",
+  "version": "1.0.0",
+  "description": "Copy provider auth tokens as JSON for NetShecan.",
+  "permissions": ["clipboardWrite", "activeTab"],
+  "host_permissions": [
+    "https://my.irancell.ir/*",
+    "https://beta.my.shatel.ir/*",
+    "https://my.mci.ir/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "netshecan-icon.png"
+    }
+  },
+  "icons": {
+    "128": "netshecan-icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://my.irancell.ir/*",
+        "https://beta.my.shatel.ir/*",
+        "https://my.mci.ir/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# Never commit real credentials / tokens
+config.json
+
+# Build artifacts
+build/
+dist/
+__pycache__/
+releases/
+*.pyc
+
+# Packaging
+*.rar
+*.zip
+
+# OS / editor
+Thumbs.db
+.DS_Store
