@@ -333,6 +333,14 @@ class ShatelProvider:
         }
 
 
+_MCI_UNIT_MB = {"مگ": 1, "گیگ": 1024}
+
+
+def _mci_to_mb(value, unit):
+    # ponytail: unknown/missing unit assumed GB (MCI's default); extend _MCI_UNIT_MB if others appear
+    return value * _MCI_UNIT_MB.get(unit, 1024)
+
+
 class MciProvider:
     key = "mci"
     name = "MCI"
@@ -399,21 +407,21 @@ class MciProvider:
         for item in data.get("packageItems") or []:
             if item.get("type") != "internet":
                 continue
-            total_gb = item.get("totalInitValue", 0)
-            rem_gb = item.get("totalUnusedValue", 0)
+            total_mb = _mci_to_mb(item.get("totalInitValue", 0), item.get("totalUnitName"))
+            rem_mb = _mci_to_mb(item.get("totalUnusedValue", 0), item.get("unUsedUnitName"))
             offers.append({
-                "name": self._offer_name(item, total_gb),
+                "name": self._offer_name(item, gb(total_mb)),
                 "is_gift": False,
-                "global_data_remaining": rem_gb * 1024,
-                "total_amount": total_gb * 1024,
+                "global_data_remaining": rem_mb,
+                "total_amount": total_mb,
                 "expiry_date": (item.get("expireTime") or "")[:10],
             })
         if not offers:
             raise ValueError("No active internet packages returned by MCI.")
         main = offers[0]
         if cfg.get("include_additional_packages", False):
-            agg_rem = data.get("totalUnusedBytes", 0) * 1024
-            agg_tot = data.get("totalInitBytes", 0) * 1024
+            agg_rem = _mci_to_mb(data.get("totalUnusedBytes", 0), data.get("bytesUnusedUnit"))
+            agg_tot = _mci_to_mb(data.get("totalInitBytes", 0), data.get("bytesInitUnit"))
         else:
             agg_rem, agg_tot = main["global_data_remaining"], main["total_amount"]
         return {

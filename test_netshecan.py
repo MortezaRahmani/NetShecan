@@ -169,6 +169,51 @@ class MciProviderTest(unittest.TestCase):
         self.assertAlmostEqual(data["aggregate_remaining_mb"], 5.33 * 1024)
         self.assertAlmostEqual(data["aggregate_total_mb"], 10.06 * 1024)
 
+    def test_fetch_mixed_units(self):
+        # remaining below 1 GB is reported in MB (unUsedUnitName "مگ") while
+        # the total stays in GB (totalUnitName "گیگ")
+        prov = app.MciProvider(None)
+        cfg = {"access_token": "x", "refresh_token": "rt", "username": "9121112233"}
+        payload = {"packageItems": [
+            {"type": "internet", "offerName": "بسته اینترنت 1روزه 2گیگابایت",
+             "totalInitValue": 2.01, "totalUnitName": "گیگ",
+             "totalUnusedValue": 228.05, "unUsedUnitName": "مگ",
+             "expireTime": "2026-08-25T13:22:06"},
+        ], "totalInitBytes": 2.01, "bytesInitUnit": "گیگ",
+           "totalUnusedBytes": 228.05, "bytesUnusedUnit": "مگ"}
+
+        with patch.object(prov, "_get", return_value=payload), \
+             patch.object(prov, "ensure_token"):
+            data = prov.fetch(cfg)
+
+        main = data["active_offers"][0]
+        self.assertAlmostEqual(main["global_data_remaining"], 228.05)
+        self.assertAlmostEqual(main["total_amount"], 2.01 * 1024)
+        self.assertAlmostEqual(data["aggregate_remaining_mb"], 228.05)
+        self.assertAlmostEqual(data["aggregate_total_mb"], 2.01 * 1024)
+        self.assertTrue(data["aggregate_remaining_mb"] < data["aggregate_total_mb"])
+
+    def test_aggregate_respects_unit_fields(self):
+        prov = app.MciProvider(None)
+        cfg = {"access_token": "x", "refresh_token": "rt", "username": "9121112233",
+               "include_additional_packages": True}
+        payload = {"packageItems": [
+            {"type": "internet", "totalInitValue": 2.01, "totalUnitName": "گیگ",
+             "totalUnusedValue": 228.05, "unUsedUnitName": "مگ",
+             "expireTime": "2026-08-25T13:22:06"},
+            {"type": "internet", "totalInitValue": 80.06, "totalUnitName": "گیگ",
+             "totalUnusedValue": 80.06, "unUsedUnitName": "گیگ",
+             "expireTime": "2026-11-22T13:49:44"},
+        ], "totalInitBytes": 82.07, "bytesInitUnit": "گیگ",
+           "totalUnusedBytes": 80.28, "bytesUnusedUnit": "گیگ"}
+
+        with patch.object(prov, "_get", return_value=payload), \
+             patch.object(prov, "ensure_token"):
+            data = prov.fetch(cfg)
+
+        self.assertAlmostEqual(data["aggregate_remaining_mb"], 80.28 * 1024)
+        self.assertAlmostEqual(data["aggregate_total_mb"], 82.07 * 1024)
+
     def test_aggregate_uses_aggregate_when_included(self):
         prov = app.MciProvider(None)
         cfg = {"access_token": "x", "refresh_token": "rt", "username": "9121112233",

@@ -339,24 +339,30 @@ server-side.
 | `GET /api/unit/v1/customer/units/campaign/campaign?brief=true` | same | Campaign banners — not used |
 | `GET /api/bill/v1/invoices?op_type=mid` | same | Mid-period invoices — not used |
 
-**`packages/details`** response (relevant fields, units are **GB**):
+**`packages/details`** response (relevant fields). Values are **not** always GB:
+each value carries its own unit field — `گیگ` = GB, `مگ` = MB. Remaining drops
+to `مگ` once it is below 1 GB while the total stays `گیگ`, so the two numbers
+of one package can be in different units:
 ```json
 {
   "packageItems": [
     {
       "type": "internet",
       "offerName": "بسته اینترنت یکماهه 10گیگابایت",
-      "totalInitValue": 10.06,      // GB total
-      "totalUnusedValue": 5.33,     // GB remaining
+      "totalInitValue": 10.06,      // total, unit = totalUnitName
+      "totalUnusedValue": 5.33,     // remaining, unit = unUsedUnitName
       "totalUnitName": "گیگ",
+      "unUsedUnitName": "گیگ",      // becomes "مگ" when remaining < 1 GB
       "expireTime": "2026-09-11T18:22:44",
       "remainingDays": "24 روز باقی‌مانده",
       "packageStatus": "active",
       "itemDetails": [ { "offeringId": "502506", "unusedAmount": 5726366910, ... } ]
     }
   ],
-  "totalInitBytes": 10.06,          // GB total (aggregate)
-  "totalUnusedBytes": 5.33          // GB remaining (aggregate)
+  "totalInitBytes": 10.06,          // aggregate total, unit = bytesInitUnit
+  "totalUnusedBytes": 5.33,         // aggregate remaining, unit = bytesUnusedUnit
+  "bytesInitUnit": "گیگ",
+  "bytesUnusedUnit": "گیگ"
 }
 ```
 
@@ -367,7 +373,9 @@ server-side.
 - main offer = the internet `packageItems[]` entry; `offerName` is Persian
   (e.g. `بسته اینترنت یکماهه 10گیگابایت`), converted to the `N Days - XGB` style
   using days until `expireTime`
-- units: MCI reports **GB**; NetShecan converts to MB internally (×1024)
+- units: each value is scaled per its own unit field (`totalUnitName`,
+  `unUsedUnitName`, `bytesInitUnit`, `bytesUnusedUnit` — `گیگ` = GB, `مگ` = MB);
+  NetShecan normalizes everything to MB internally
 
 > 💡 The `include_additional_packages` setting (default **OFF** for MCI) controls
 > whether the headline remaining/total uses the API aggregate
@@ -458,7 +466,8 @@ server-side.
 - **No `Bearer` prefix for Irancell** — the web app sends the raw JWT in the
   `authorization` header. Shatel and MCI require `Bearer <token>`.
 - **Units**: Irancell API returns **MB**; Shatel gateway returns **KB**; MCI
-  returns **GB**. NetShecan normalizes all to MB internally (`gb() = MB/1024`).
+  returns values scaled per their own unit fields (`گیگ` = GB, `مگ` = MB).
+  NetShecan normalizes all to MB internally (`gb() = MB/1024`).
 - **Persian offer names** (Irancell) are converted to the `30 Days - 20GB` style
   by parsing the `Nروزه` / `Nگیگابایت` tokens; the trailing parenthetical
   (e.g. `(2 تا 7 صبح)`) is preserved. MCI names are converted using the number
