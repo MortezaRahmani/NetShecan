@@ -45,7 +45,7 @@ Only MCI eventually needs a re-login (about once a month) — and the bundled Ch
 ### Requirements
 
 - **Python 3.10+**
-- `pip install flet`  (add `pystray pillow` for tray support)
+- `pip install -r requirements.txt`
 
 ### Run
 

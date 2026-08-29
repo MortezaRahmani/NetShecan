@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import Request
 
 import flet as ft
+from persiantools.jdatetime import JalaliDateTime
 
 # Bypass any system/registry/env proxy so this app always connects directly
 # (my.irancell.ir / gateway.shatel.ir and Shecan are reached directly).
@@ -107,6 +108,14 @@ def _needs_refresh(token, margin=300):
         return True
     exp = p.get("exp") or 0
     return exp - time.time() < margin
+
+
+def _tci_expiry(expiry):
+    """Convert TCI's Jalali timestamp to the Gregorian date shown by the app."""
+    try:
+        return JalaliDateTime.strptime((expiry or "")[:19], "%Y-%m-%dT%H:%M:%S").to_gregorian()
+    except (TypeError, ValueError):
+        return None
 
 
 def _fa_num(s):
@@ -468,6 +477,10 @@ class TciProvider:
         with _open(req, 20) as r:
             return json.load(r)
 
+    def _offer_name(self, total_mb, expiry_dt):
+        days = max(0, (expiry_dt - datetime.now()).days) if expiry_dt else 0
+        return f"{days} Days - {round(total_mb / 1024)}GB"
+
     def fetch(self, cfg):
         self.ensure_token(cfg)
         headers = {"Authorization": "Bearer " + cfg["access_token"], "Accept": "application/json"}
@@ -481,16 +494,17 @@ class TciProvider:
         plan = account.get("activeService") or customer_plan
         remaining_mb = account.get("credit")
         total_mb = plan.get("baseTraffic")
+        expiry_dt = _tci_expiry(account.get("expireDateTime"))
         if remaining_mb is None or total_mb is None:
             raise ValueError("TCI returned incomplete traffic data.")
         return {
             "provider_name": "TCI",
             "active_offers": [{
-                "name": customer_plan.get("name") or plan.get("serviceType") or "TCI ADSL",
+                "name": self._offer_name(total_mb, expiry_dt),
                 "is_gift": False,
                 "global_data_remaining": remaining_mb,
                 "total_amount": total_mb,
-                "expiry_date": "",
+                "expiry_date": expiry_dt.date().isoformat() if expiry_dt else "",
             }],
             "main_index": 0,
             "aggregate_remaining_mb": remaining_mb,

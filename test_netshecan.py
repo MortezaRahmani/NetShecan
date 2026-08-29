@@ -245,6 +245,9 @@ class MciProviderTest(unittest.TestCase):
 
 
 class TciProviderTest(unittest.TestCase):
+    def test_converts_jalali_expiry(self):
+        self.assertEqual(app._tci_expiry("1405-06-07T12:00:00").date().isoformat(), "2026-08-29")
+
     def test_fetches_active_adsl_quota(self):
         prov = app.TciProvider(None)
         cfg = {"access_token": "AT", "refresh_token": "RT"}
@@ -253,6 +256,7 @@ class TciProviderTest(unittest.TestCase):
         ]}
         detail = {"acc_info": {
             "credit": 5474,
+            "expireDateTime": "1405-07-08T00:00:00",
             "activeService": {"serviceType": "TCI ADSL", "baseTraffic": 261120},
         }}
         with patch.object(prov, "ensure_token"), \
@@ -261,7 +265,8 @@ class TciProviderTest(unittest.TestCase):
         self.assertEqual(data["provider_name"], "TCI")
         self.assertEqual(data["aggregate_remaining_mb"], 5474)
         self.assertEqual(data["aggregate_total_mb"], 261120)
-        self.assertEqual(data["active_offers"][0]["name"], "TCI ADSL")
+        self.assertRegex(data["active_offers"][0]["name"], r"^\d+ Days - 255GB$")
+        self.assertEqual(data["active_offers"][0]["expiry_date"], "2026-09-30")
 
     def test_refreshes_tokens(self):
         class FakeApp:

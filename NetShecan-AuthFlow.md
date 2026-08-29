@@ -423,10 +423,11 @@ NetShecan saves both to `config.json` immediately.
 | `GET /services/adsl/usage/{tel_number}/{from}/{to}` | Daily traffic report; dates use Persian-calendar `YYYYMMDD`. |
 
 The quota endpoint returns `acc_info.credit` as remaining traffic in **MB** and
-`acc_info.activeService.baseTraffic` as the plan allowance in **MB**. NetShecan
-uses these as its headline remaining and total. The portal's extra-traffic
-balance is not included because this response does not provide its original
-allowance.
+`acc_info.activeService.baseTraffic` as the plan allowance in **MB**.
+`acc_info.expireDateTime` is a Jalali timestamp; NetShecan converts it with
+`persiantools` before displaying the Gregorian expiry date and deriving the
+`N Days - NGB` package label. The portal's extra-traffic balance is not included
+because this response does not provide its original allowance.
 
 ---
 

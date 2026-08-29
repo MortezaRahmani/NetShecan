@@ -1,0 +1,4 @@
+flet
+pystray
+Pillow
+persiantools==6.2.0
