@@ -247,6 +247,7 @@ class MciProviderTest(unittest.TestCase):
 class TciProviderTest(unittest.TestCase):
     def test_converts_jalali_expiry(self):
         self.assertEqual(app._tci_expiry("1405-06-07T12:00:00").date().isoformat(), "2026-08-29")
+        self.assertEqual(app._tci_expiry("1405/06/07 12:00:00").date().isoformat(), "2026-08-29")
 
     def test_fetches_active_adsl_quota(self):
         prov = app.TciProvider(None)

@@ -113,7 +113,8 @@ def _needs_refresh(token, margin=300):
 def _tci_expiry(expiry):
     """Convert TCI's Jalali timestamp to the Gregorian date shown by the app."""
     try:
-        return JalaliDateTime.strptime((expiry or "")[:19], "%Y-%m-%dT%H:%M:%S").to_gregorian()
+        date = re.split(r"[T ]", str(expiry or ""), maxsplit=1)[0].replace("/", "-")
+        return JalaliDateTime.strptime(date, "%Y-%m-%d").to_gregorian()
     except (TypeError, ValueError):
         return None
 

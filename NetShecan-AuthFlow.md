@@ -424,7 +424,8 @@ NetShecan saves both to `config.json` immediately.
 
 The quota endpoint returns `acc_info.credit` as remaining traffic in **MB** and
 `acc_info.activeService.baseTraffic` as the plan allowance in **MB**.
-`acc_info.expireDateTime` is a Jalali timestamp; NetShecan converts it with
+`acc_info.expireDateTime` is a Jalali timestamp (the portal may use `/` or `-`
+separators); NetShecan converts it with
 `persiantools` before displaying the Gregorian expiry date and deriving the
 `N Days - NGB` package label. The portal's extra-traffic balance is not included
 because this response does not provide its original allowance.
