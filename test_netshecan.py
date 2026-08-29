@@ -252,6 +252,7 @@ class TciProviderTest(unittest.TestCase):
             app._tci_expiry("۱۴۰۵/۰۶/۰۷ ساعت ۱۲:۰۰").date().isoformat(),
             "2026-08-29",
         )
+        self.assertEqual(app._tci_expiry("14050718T200941").date().isoformat(), "2026-10-10")
 
     def test_fetches_active_adsl_quota(self):
         prov = app.TciProvider(None)

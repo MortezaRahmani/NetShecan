@@ -117,6 +117,10 @@ def _tci_expiry(expiry):
         value = _fa_num(str(expiry or ""))
         match = re.search(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", value)
         if not match:
+            # The live ADSL endpoint uses a compact Jalali timestamp, e.g.
+            # 14050718T200941.
+            match = re.search(r"(?<!\d)(\d{4})(\d{2})(\d{2})(?:T|\D|$)", value)
+        if not match:
             return None
         date = "-".join(f"{int(part):02d}" for part in match.groups())
         return JalaliDateTime.strptime(date, "%Y-%m-%d").to_gregorian()
