@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import Request
 
 import flet as ft
+from persiantools.jdatetime import JalaliDateTime
 
 # Bypass any system/registry/env proxy so this app always connects directly
 # (my.irancell.ir / gateway.shatel.ir and Shecan are reached directly).
@@ -107,6 +108,24 @@ def _needs_refresh(token, margin=300):
         return True
     exp = p.get("exp") or 0
     return exp - time.time() < margin
+
+
+def _tci_expiry(expiry):
+    """Convert TCI's Jalali timestamp to the Gregorian date shown by the app."""
+    try:
+        # TCI may return Persian/Arabic numerals and either slash or hyphen dates.
+        value = _fa_num(str(expiry or ""))
+        match = re.search(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})", value)
+        if not match:
+            # The live ADSL endpoint uses a compact Jalali timestamp, e.g.
+            # 14050718T200941.
+            match = re.search(r"(?<!\d)(\d{4})(\d{2})(\d{2})(?:T|\D|$)", value)
+        if not match:
+            return None
+        date = "-".join(f"{int(part):02d}" for part in match.groups())
+        return JalaliDateTime.strptime(date, "%Y-%m-%d").to_gregorian()
+    except (TypeError, ValueError):
+        return None
 
 
 def _fa_num(s):
@@ -433,7 +452,77 @@ class MciProvider:
         }
 
 
-PROVIDERS = {p.key: p for p in (IrancellProvider, ShatelProvider, MciProvider)}
+class TciProvider:
+    key = "tci"
+    name = "TCI"
+    TOKEN_URL = "https://my.tci.ir/api/v1/auth/token"
+    SERVICES_URL = "https://my.tci.ir/api/v1/services"
+    DETAIL_URL = "https://my.tci.ir/api/v1/services/adsl/{}"
+
+    def __init__(self, app):
+        self.app = app
+
+    def ensure_token(self, cfg):
+        if cfg.get("access_token") and not _needs_refresh(cfg["access_token"]):
+            return
+        refresh_token = cfg.get("refresh_token", "")
+        if not refresh_token:
+            raise ValueError("No refresh token. Log in and paste it in Settings.")
+        req = Request(self.TOKEN_URL, data=b"", headers={
+            "Authorization": "Bearer " + refresh_token,
+            "Accept": "application/json",
+        })
+        with _open(req, 20) as r:
+            data = json.load(r)
+        if not data.get("access_token"):
+            raise ValueError("Token refresh failed: " + str(data.get("message", data))[:120])
+        cfg["access_token"] = data["access_token"]
+        if data.get("refresh_token"):
+            cfg["refresh_token"] = data["refresh_token"]
+        if self.app:
+            self.app._save_config()
+
+    def _get(self, url, headers):
+        req = Request(url, headers=headers)
+        with _open(req, 20) as r:
+            return json.load(r)
+
+    def _offer_name(self, total_mb, expiry_dt):
+        days = max(0, (expiry_dt - datetime.now()).days) if expiry_dt else 0
+        return f"{days} Days - {round(total_mb / 1024)}GB"
+
+    def fetch(self, cfg):
+        self.ensure_token(cfg)
+        headers = {"Authorization": "Bearer " + cfg["access_token"], "Accept": "application/json"}
+        services = self._get(self.SERVICES_URL, headers).get("data", [])
+        service = next((s for s in services if s.get("active_adsl_service")), None)
+        if not service:
+            raise ValueError("No active ADSL service returned by TCI.")
+        detail = self._get(self.DETAIL_URL.format(service["tel_number"]), headers)
+        account = detail.get("acc_info") or {}
+        customer_plan = (detail.get("customer_info") or {}).get("activeService") or {}
+        plan = account.get("activeService") or customer_plan
+        remaining_mb = account.get("credit")
+        total_mb = plan.get("baseTraffic")
+        expiry_dt = _tci_expiry(account.get("expireDateTime"))
+        if remaining_mb is None or total_mb is None:
+            raise ValueError("TCI returned incomplete traffic data.")
+        return {
+            "provider_name": "TCI",
+            "active_offers": [{
+                "name": self._offer_name(total_mb, expiry_dt),
+                "is_gift": False,
+                "global_data_remaining": remaining_mb,
+                "total_amount": total_mb,
+                "expiry_date": expiry_dt.date().isoformat() if expiry_dt else "",
+            }],
+            "main_index": 0,
+            "aggregate_remaining_mb": remaining_mb,
+            "aggregate_total_mb": total_mb,
+        }
+
+
+PROVIDERS = {p.key: p for p in (IrancellProvider, ShatelProvider, MciProvider, TciProvider)}
 
 # Per-provider keys that a pasted JSON (from the helper extension) may set.
 # Preference keys like include_additional_packages are intentionally excluded
@@ -445,6 +534,7 @@ PASTE_KEYS = {
     "shatel": ["refresh_token", "access_token", "client_id"],
     "mci": ["username", "refresh_token", "access_token", "version",
             "platform", "accept_language"],
+    "tci": ["refresh_token", "access_token"],
 }
 
 
@@ -610,7 +700,9 @@ class NetShecanApp:
             icon = self._provider_icon(key)
             is_active = key == active
             controls.append(ft.Container(
-                content=ft.Image(src=icon, width=26, height=26, fit=ft.BoxFit.CONTAIN),
+                content=(ft.Image(src=icon, width=26, height=26, fit=ft.BoxFit.CONTAIN)
+                         if icon else ft.Text(PROVIDERS[key].name[0], size=16,
+                                              weight=ft.FontWeight.W_700, color=TEXT)),
                 width=44, height=44,
                 alignment=ft.Alignment.CENTER,
                 bgcolor=SURFACE_2,
@@ -851,6 +943,9 @@ class NetShecanApp:
                     "username": "", "version": "1.31.8", "platform": "WEB",
                     "accept_language": "en-GB",
                 },
+                "tci": {
+                    "refresh_token": "", "access_token": "",
+                },
             },
             "poll_seconds": 300, "minimize_to_tray": False,
             "check_shecan": True, "shecan_url": "", "usage_threshold_mb": 300,
@@ -1070,23 +1165,27 @@ class NetShecanApp:
                 self._pf["refresh_token"] = field("Refresh Token", p.get("refresh_token", ""), True)
                 self._pf["access_token"] = field("Access Token (auto)", p.get("access_token", ""), True)
                 self._pf["client_id"] = field("Client ID", p.get("client_id", "MyShatelB2cWeb"))
-            else:
+            elif key == "mci":
                 self._pf["username"] = field("Username", p.get("username", ""))
                 self._pf["refresh_token"] = field("Refresh Token", p.get("refresh_token", ""), True)
                 self._pf["access_token"] = field("Access Token (auto)", p.get("access_token", ""), True)
                 self._pf["version"] = field("Version", p.get("version", "1.31.8"))
                 self._pf["platform"] = field("Platform", p.get("platform", "WEB"))
                 self._pf["accept_language"] = field("Accept-Language", p.get("accept_language", "en-GB"))
+            else:
+                self._pf["refresh_token"] = field("Refresh Token", p.get("refresh_token", ""), True)
+                self._pf["access_token"] = field("Access Token (auto)", p.get("access_token", ""), True)
             controls.append(ft.Container(ft.Column(list(self._pf.values()), spacing=10)))
-            sw = ft.Switch(
-                label="Include Additional Data Packages",
-                value=bool(p.get("include_additional_packages", False)),
-            )
-            self._psw["include_additional_packages"] = sw
-            controls.append(ft.Container(
-                ft.Row([sw], spacing=6),
-                padding=ft.Padding.symmetric(vertical=2),
-            ))
+            if key != "tci":
+                sw = ft.Switch(
+                    label="Include Additional Data Packages",
+                    value=bool(p.get("include_additional_packages", False)),
+                )
+                self._psw["include_additional_packages"] = sw
+                controls.append(ft.Container(
+                    ft.Row([sw], spacing=6),
+                    padding=ft.Padding.symmetric(vertical=2),
+                ))
             self._prov_fields_box.controls = controls
             if not initial:
                 self.dlg.update()
@@ -1188,10 +1287,12 @@ class NetShecanApp:
             self.cfg["provider"] = key
             self._save_config()
             self.provider = PROVIDERS[key](self)
+            self.switcher_row.controls = self._switcher_controls()
             _close_paste_confirm()
             prov_dd.value = key
             rebuild_provider_fields(key)
             self.dlg.update()
+            self.refresh()
 
         f_poll = field("Auto Check Interval (minutes)",
                        str(self.cfg.get("poll_seconds", 300) // 60))

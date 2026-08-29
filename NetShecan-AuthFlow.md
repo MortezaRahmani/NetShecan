@@ -1,8 +1,8 @@
 # NetShecan — Authentication Flow Documentation
 
 This document describes the complete authentication and token-refresh flows for the
-providers supported by NetShecan: **Irancell**, **Shatel** (MyShatel) and **MCI**
-(Hamrah-e-Aval / همراه‌من).
+providers supported by NetShecan: **Irancell**, **Shatel** (MyShatel), **MCI**
+(Hamrah-e-Aval / همراه‌من), and **TCI** (مخابرات من).
 
 All flows were captured from the providers' own web applications and
 implemented in `netshecan.py`. Values like `client_id`/`client_secret` are the
@@ -15,16 +15,16 @@ only stored secret** and are kept in `config.json`.
 
 ## 1. High-level comparison
 
-| | Irancell (`my.irancell.ir`) | Shatel (`my.shatel.ir` / `beta.my.shatel.ir`) | MCI (`my.mci.ir`) |
-|---|---|---|---|
-| Grant types | `otp-sms` (login), `refresh_token` | `authorization_code` + PKCE (login), `refresh_token` | OTP (login), `REFRESH_TOKEN` |
-| Access token lifetime | **20 hours** (`expires_in=72000`) | **1 hour** (`expires_in=3600`) | **30 minutes** (`expires_in=1800`) |
-| Refresh token lifetime | **~10 years** (JWT `exp` far in future) | **unknown/rotating** — rotated on every use | **~30 days** (`refresh_expires_in=2592000`) |
-| Refresh token rotation | Rotated on every refresh | Rotated on every refresh | Rotated on every refresh |
-| Token storage (web app) | `localStorage["NGMI-Sessions"]` | `localStorage["oidc.user:https://account-api.shatel.ir:MyShatelB2cWeb"]` | `localStorage["authToken"]` + `["refreshToken"]` |
-| Auth header format | Raw JWT (no `Bearer ` prefix) | `Bearer <access_token>` | `Bearer <access_token>` |
-| Login credential | Phone number + SMS OTP | Phone number + SMS OTP (via unified account portal) | Phone number + SMS OTP |
-| Extra API headers | — | — | `version: 1.31.8`, `platform: WEB` |
+| | Irancell (`my.irancell.ir`) | Shatel (`my.shatel.ir` / `beta.my.shatel.ir`) | MCI (`my.mci.ir`) | TCI (`my.tci.ir`) |
+|---|---|---|---|---|
+| Grant types | `otp-sms` (login), `refresh_token` | `authorization_code` + PKCE (login), `refresh_token` | OTP (login), `REFRESH_TOKEN` | mobile OTP/voice (login), bearer refresh |
+| Access token lifetime | **20 hours** (`expires_in=72000`) | **1 hour** (`expires_in=3600`) | **30 minutes** (`expires_in=1800`) | JWT; portal-issued |
+| Refresh token lifetime | **~10 years** (JWT `exp` far in future) | **unknown/rotating** — rotated on every use | **~30 days** (`refresh_expires_in=2592000`) | portal-managed/rotated |
+| Refresh token rotation | Rotated on every refresh | Rotated on every refresh | Rotated on every refresh | Rotated on every refresh |
+| Token storage (web app) | `localStorage["NGMI-Sessions"]` | `localStorage["oidc.user:https://account-api.shatel.ir:MyShatelB2cWeb"]` | `localStorage["authToken"]` + `["refreshToken"]` | `localStorage["access_token"]` + `["refresh_token"]` |
+| Auth header format | Raw JWT (no `Bearer ` prefix) | `Bearer <access_token>` | `Bearer <access_token>` | `Bearer <access_token>` |
+| Login credential | Phone number + SMS OTP | Phone number + SMS OTP (via unified account portal) | Phone number + SMS OTP | mobile number + OTP/voice |
+| Extra API headers | — | — | `version: 1.31.8`, `platform: WEB` | — |
 
 ---
 
@@ -274,7 +274,7 @@ All gateway endpoints sit under `https://gateway.shatel.ir`.
 
 ---
 
-## 3.5 MCI (Hamrah-e-Aval / همراه‌من)
+## 4. MCI (Hamrah-e-Aval / همراه‌من)
 
 Base URL: `https://my.mci.ir`
 
@@ -283,7 +283,7 @@ The MCI web app is an **Angular SPA** (`my.mci.ir`) backed by a single API host
 Shatel, MCI issues self-contained **HS256 JWTs** with simple `OTP` and
 `REFRESH_TOKEN` credential types against the same endpoint.
 
-### 3.5.1 Login (one-time, done manually in the browser)
+### 4.1 Login (one-time, done manually in the browser)
 
 1. `GET /auth` — landing page.
 2. Enter the phone number → `POST /api/idm/v1/auth/send-otp`
@@ -312,7 +312,7 @@ Shatel, MCI issues self-contained **HS256 JWTs** with simple `OTP` and
    - `refresh_token` (HS256): `type: "Refresh"`, `main_phone`, `current_phone`,
      `session_state`, `exp` = iat + 2592000s (**30 days**).
 
-### 3.5.2 Token refresh (automatic, implemented in NetShecan)
+### 4.2 Token refresh (automatic, implemented in NetShecan)
 
 `POST /api/idm/v1/auth`
 
@@ -331,7 +331,7 @@ Response: identical shape to login — new `access_token` (30 min) and **rotated
 `refresh_token` (30 days). Save both; the old refresh token is invalidated
 server-side.
 
-### 3.5.3 Data endpoints
+### 4.3 Data endpoints
 
 | Endpoint | Headers | Purpose |
 |---|---|---|
@@ -384,11 +384,60 @@ of one package can be in different units:
 
 ---
 
-## 4. What NetShecan stores in `config.json`
+## 5. TCI (مخابرات من)
+
+Base URL: `https://my.tci.ir/api/v1`
+
+The modern TCI portal is a React SPA. It uses bearer tokens rather than the
+older HTML panel at `internet.tci.ir`; NetShecan uses this JSON API.
+
+### 5.1 Login (one-time, done manually in the browser)
+
+1. `POST /auth/send-code` starts authentication with the mobile number, portal
+   app identifiers, and a selected `method` (OTP or voice call).
+2. `POST /auth/authenticate` completes the portal's OTP flow and returns an
+   `access_token` and `refresh_token`.
+3. The portal stores them in `localStorage["access_token"]` and
+   `localStorage["refresh_token"]`. The NetShecan Chrome helper copies those
+   values as `{"provider":"tci", ...}`.
+
+### 5.2 Token refresh (automatic, implemented in NetShecan)
+
+`POST /auth/token` with no request body.
+
+Headers:
+```
+Authorization: Bearer <refresh_token>
+Accept: application/json
+```
+
+The response contains a new `access_token` and rotated `refresh_token`.
+NetShecan saves both to `config.json` immediately.
+
+### 5.3 Active service and quota
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /services` | Lists the user's lines; NetShecan selects the entry with `active_adsl_service: true`. |
+| `GET /services/adsl/{tel_number}` | Returns active ADSL details and quota. |
+| `GET /services/adsl/usage/{tel_number}/{from}/{to}` | Daily traffic report; dates use Persian-calendar `YYYYMMDD`. |
+
+The quota endpoint returns `acc_info.credit` as remaining traffic in **MB** and
+`acc_info.activeService.baseTraffic` as the plan allowance in **MB**.
+`acc_info.expireDateTime` is a Jalali timestamp. The ADSL endpoint currently
+uses the compact `YYYYMMDDTHHMMSS` form; the portal may also use `/` or `-`
+separators. NetShecan converts it with
+`persiantools` before displaying the Gregorian expiry date and deriving the
+`N Days - NGB` package label. The portal's extra-traffic balance is not included
+because this response does not provide its original allowance.
+
+---
+
+## 6. What NetShecan stores in `config.json`
 
 ```json
 {
-  "provider": "irancell",              // active provider: "irancell" | "shatel" | "mci"
+  "provider": "irancell",              // active provider: "irancell" | "shatel" | "mci" | "tci"
   "providers": {
     "irancell": {
       "authorization": "<access_token>",         // 20h; refreshed automatically
@@ -416,6 +465,10 @@ of one package can be in different units:
       "version": "1.31.8",
       "platform": "WEB",
       "accept_language": "en-GB"
+    },
+    "tci": {
+      "refresh_token": "<refresh_token>",
+      "access_token": "<access_token>"
     }
   },
   "poll_seconds": 300,
@@ -431,7 +484,8 @@ of one package can be in different units:
 - **Provider** dropdown — switching it rebuilds the inputs for that provider
   (each provider exposes only its own auth fields: Irancell = access/refresh
   tokens + client params; Shatel = refresh/access tokens + client id; MCI =
-  username + refresh/access tokens + version/platform).
+  username + refresh/access tokens + version/platform; TCI = refresh/access
+  tokens).
 - **Include Additional Data Packages** — per-provider checkbox controlling the
   headline remaining/total (see the aggregation notes for each provider above).
 - **Auto Check Interval (minutes)** — global.
@@ -457,15 +511,17 @@ of one package can be in different units:
 3. **MCI**: log in at `my.mci.ir/auth`, then read
    `localStorage["authToken"]` and `localStorage["refreshToken"]` (also fill the
    `username` — the login phone number without the leading `0`).
-4. Paste the values into NetShecan's Settings dialog (or edit `config.json`).
+4. **TCI**: log in at `my.tci.ir`, then use the NetShecan Chrome helper to copy
+   `localStorage["access_token"]` and `localStorage["refresh_token"]`.
+5. Paste the values into NetShecan's Settings dialog (or edit `config.json`).
 
 ---
 
-## 5. Practical notes
+## 7. Practical notes
 
 - **No `Bearer` prefix for Irancell** — the web app sends the raw JWT in the
-  `authorization` header. Shatel and MCI require `Bearer <token>`.
-- **Units**: Irancell API returns **MB**; Shatel gateway returns **KB**; MCI
+  `authorization` header. Shatel, MCI, and TCI require `Bearer <token>`.
+- **Units**: Irancell and TCI APIs return **MB**; Shatel gateway returns **KB**; MCI
   returns values scaled per their own unit fields (`گیگ` = GB, `مگ` = MB).
   NetShecan normalizes all to MB internally (`gb() = MB/1024`).
 - **Persian offer names** (Irancell) are converted to the `30 Days - 20GB` style

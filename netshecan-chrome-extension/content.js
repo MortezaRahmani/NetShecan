@@ -71,11 +71,23 @@
     };
   }
 
+  function buildTci() {
+    const accessToken = localStorage.getItem("access_token");
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (!accessToken || !refreshToken) return null;
+    return {
+      provider: "tci",
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
+  }
+
   function build() {
     const host = location.hostname;
     if (host === "my.irancell.ir") return buildIrancell();
     if (host === "beta.my.shatel.ir") return buildShatel();
     if (host === "my.mci.ir") return buildMci();
+    if (host === "my.tci.ir") return buildTci();
     return null;
   }
 

@@ -103,6 +103,13 @@ class ParsePasteJsonTest(unittest.TestCase):
         self.assertEqual(key, "mci")
         self.assertEqual(fields["username"], "9121112233")
 
+    def test_tci(self):
+        key, fields = app.parse_paste_json(json.dumps({
+            "provider": "tci", "refresh_token": "RT", "access_token": "AT",
+        }))
+        self.assertEqual(key, "tci")
+        self.assertEqual(fields, {"refresh_token": "RT", "access_token": "AT"})
+
 
 class ShatelProviderTest(unittest.TestCase):
     def test_package_name(self):
@@ -235,6 +242,55 @@ class MciProviderTest(unittest.TestCase):
         expected_days = (exp - datetime.now()).days
         self.assertEqual(prov._offer_name({"expireTime": exp.isoformat()}, 10.06),
                          f"{expected_days} Days - 10GB")
+
+
+class TciProviderTest(unittest.TestCase):
+    def test_converts_jalali_expiry(self):
+        self.assertEqual(app._tci_expiry("1405-06-07T12:00:00").date().isoformat(), "2026-08-29")
+        self.assertEqual(app._tci_expiry("1405/06/07 12:00:00").date().isoformat(), "2026-08-29")
+        self.assertEqual(
+            app._tci_expiry("۱۴۰۵/۰۶/۰۷ ساعت ۱۲:۰۰").date().isoformat(),
+            "2026-08-29",
+        )
+        self.assertEqual(app._tci_expiry("14050718T200941").date().isoformat(), "2026-10-10")
+
+    def test_fetches_active_adsl_quota(self):
+        prov = app.TciProvider(None)
+        cfg = {"access_token": "AT", "refresh_token": "RT"}
+        services = {"data": [
+            {"tel_number": "02100000000", "active_adsl_service": True},
+        ]}
+        detail = {"acc_info": {
+            "credit": 5474,
+            "expireDateTime": "1405-07-08T00:00:00",
+            "activeService": {"serviceType": "TCI ADSL", "baseTraffic": 261120},
+        }}
+        with patch.object(prov, "ensure_token"), \
+             patch.object(prov, "_get", side_effect=[services, detail]):
+            data = prov.fetch(cfg)
+        self.assertEqual(data["provider_name"], "TCI")
+        self.assertEqual(data["aggregate_remaining_mb"], 5474)
+        self.assertEqual(data["aggregate_total_mb"], 261120)
+        self.assertRegex(data["active_offers"][0]["name"], r"^\d+ Days - 255GB$")
+        self.assertEqual(data["active_offers"][0]["expiry_date"], "2026-09-30")
+
+    def test_refreshes_tokens(self):
+        class FakeApp:
+            def __init__(self):
+                self.saved = False
+
+            def _save_config(self):
+                self.saved = True
+
+        owner = FakeApp()
+        prov = app.TciProvider(owner)
+        cfg = {"access_token": "expired", "refresh_token": "RT"}
+        with patch.object(app, "_open", return_value=FakeResponse({
+            "access_token": "NEW_AT", "refresh_token": "NEW_RT",
+        })):
+            prov.ensure_token(cfg)
+        self.assertEqual(cfg, {"access_token": "NEW_AT", "refresh_token": "NEW_RT"})
+        self.assertTrue(owner.saved)
 
 
 class FakeResponse:
