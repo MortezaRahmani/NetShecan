@@ -128,7 +128,7 @@ Full, up-to-date authentication and token-refresh documentation for all three pr
 A PyInstaller spec is included.
 
 ```bash
-pip install pyinstaller flet pystray pillow
+pip install -r requirements.txt pyinstaller
 pyinstaller NetShecan.spec --noconfirm --clean
 ```
 
