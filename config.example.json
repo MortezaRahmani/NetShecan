@@ -27,6 +27,10 @@
       "version": "1.31.8",
       "platform": "WEB",
       "accept_language": "en-GB"
+    },
+    "tci": {
+      "refresh_token": "<Paste your TCI refresh token>",
+      "access_token": "<auto-filled on first refresh>"
     }
   },
   "poll_seconds": 300,

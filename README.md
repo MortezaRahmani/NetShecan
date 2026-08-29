@@ -13,7 +13,7 @@
 Mobile and fixed-line data plans hide your quota behind login walls and short-lived tokens. NetShecan is a tray-friendly Windows app that shows the numbers that matter and **renews the provider tokens automatically**, so you never have to re-paste credentials every few hours.
 
 - **Live dashboard** — a big remaining-data ring plus USED / TOTAL cards and the expiry date.
-- **Multiple providers** — Irancell, Shatel (MyShatel) and MCI (Hamrah-e-Aval), switchable from the main screen.
+- **Multiple providers** — Irancell, Shatel (MyShatel), MCI (Hamrah-e-Aval), and TCI, switchable from the main screen.
 - **Automatic refresh** — stores a long-lived refresh token and exchanges it for a fresh access token before it expires.
 - **Other packages** — gift / extra data packages shown separately with their own remaining values.
 - **Low-data alert** — plays a sound and brings the window forward below your threshold.
@@ -34,6 +34,7 @@ Each provider exposes a short-lived *access token* and a longer-lived *refresh t
 | Irancell | 20 h | ~10 years | effectively forever |
 | Shatel | 1 h | rotated each use | effectively forever |
 | MCI | 30 min | ~30 days | ~30 days |
+| TCI | JWT | rotated by refresh | portal-managed |
 
 Only MCI eventually needs a re-login (about once a month) — and the bundled Chrome extension makes re-seeding a single click.
 
@@ -77,6 +78,7 @@ Because refresh tokens rotate, the easiest way to seed them is the bundled **Chr
    - Irancell → `https://my.irancell.ir`
    - Shatel → `https://beta.my.shatel.ir`
    - MCI → `https://my.mci.ir`
+   - TCI → `https://my.tci.ir`
 2. Click the **NetShecan Helper** toolbar icon → **Copy JSON**.
 3. In NetShecan, open **Settings** → **Paste from Extension**.
 
@@ -94,7 +96,7 @@ Paste tokens into **Settings** (or edit `config.json`). See [`NetShecan-AuthFlow
 
 ```jsonc
 {
-  "provider": "irancell",            // active provider: irancell | shatel | mci
+  "provider": "irancell",            // active provider: irancell | shatel | mci | tci
   "providers": { /* per-provider tokens + client constants */ },
   "poll_seconds": 300,               // auto check interval (seconds)
   "usage_threshold_mb": 300,         // low-data alert threshold (MB)
