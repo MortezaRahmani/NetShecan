@@ -17,9 +17,12 @@
 	.st11{fill:none;stroke:#FABD32;stroke-width:20;stroke-linecap:round;}
 	.st12{font-family:'CourierNewPS-BoldMT';}
 	.st13{font-size:52px;}
+	.st14{font-family:Arial,sans-serif;font-size:22px;font-weight:400;}
+	.st15{font-family:Arial,sans-serif;font-size:14px;font-weight:700;}
+	.st16{font-family:Arial,sans-serif;font-size:12px;font-weight:400;}
 </style>
 <desc  id="hero-desc">
-	NetShecan — a desktop monitor that shows your remaining, used and total data for Irancell, Shatel and MCI, and keeps itself logged in automatically.
+	NetShecan — a desktop monitor that shows your remaining, used and total data for Irancell, Shatel, MCI and TCI, and keeps itself logged in automatically.
 	</desc>
 <linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="178.8508" y1="477.9506" x2="179.8508" y2="476.9506" gradientTransform="matrix(1200 0 0 -360 -214621 172062.2031)">
 	<stop  offset="0" style="stop-color:#0B2432"/>
@@ -275,7 +278,7 @@
 			c0.8,0,1.4-0.2,1.8-0.7c0.4-0.5,0.7-1.1,0.9-1.9L550.7,124.5z"/>
 		<path class="st7" d="M566.8,138v-3.6h3.6v3.6H566.8z"/>
 	</g>
-	<g class="st4">
+	<g id="provider-summary-legacy" class="st4" display="none">
 		<path class="st8" d="M2.2,172v-17.2h2.3V172H2.2z"/>
 		<path class="st8" d="M8.2,172v-12.4h1.9v1.9c0.5-0.9,0.9-1.5,1.3-1.7s0.9-0.4,1.4-0.4c0.7,0,1.4,0.2,2.2,0.7l-0.7,2
 			c-0.5-0.3-1-0.5-1.5-0.5c-0.5,0-0.9,0.1-1.2,0.4s-0.6,0.7-0.8,1.2c-0.2,0.8-0.4,1.6-0.4,2.5v6.5H8.2z"/>
@@ -438,7 +441,8 @@
 			s-1,1.7-1,3.2v6.8H631.2z"/>
 		<path class="st8" d="M645.1,172v-2.4h2.4v2.4H645.1z"/>
 	</g>
-	<g id="meta" transform="translate(0 220)">
+	<text id="provider-summary" x="0" y="172" class="st7 st14">Irancell · Shatel · MCI · TCI — auto-refreshing, no manual re-login.</text>
+	<g id="meta-legacy" transform="translate(0 220)" display="none">
 		<g transform="translate(0 0)">
 			<path class="st9" d="M12,0h126c6.6,0,12,5.4,12,12v22c0,6.6-5.4,12-12,12H12C5.4,46,0,40.6,0,34V12C0,5.4,5.4,0,12,0z"/>
 			<g class="st4">
@@ -607,6 +611,28 @@
 					c0.1-0.1,0.2-0.3,0.2-0.5c0-0.1-0.1-0.3-0.3-0.5c-0.1-0.1-0.4-0.2-0.7-0.3c-0.6-0.1-1.1-0.3-1.4-0.4c-0.4-0.1-0.6-0.2-0.8-0.4
 					c-0.3-0.3-0.5-0.6-0.5-1C89.8,33.3,89.9,33,90.2,32.7z"/>
 			</g>
+		</g>
+	</g>
+	<g id="meta" transform="translate(0 220)">
+		<g transform="translate(0 0)">
+			<rect class="st9" x="0" y="0" width="140" height="46" rx="12"/>
+			<text x="16" y="20" class="st3 st15">AUTO-REFRESH</text>
+			<text x="16" y="35" class="st8 st16">4 providers</text>
+		</g>
+		<g transform="translate(152 0)">
+			<rect class="st9" x="0" y="0" width="140" height="46" rx="12"/>
+			<text x="16" y="20" class="st3 st15">DESKTOP</text>
+			<text x="16" y="35" class="st8 st16">Flet · Python</text>
+		</g>
+		<g transform="translate(304 0)">
+			<rect class="st9" x="0" y="0" width="140" height="46" rx="12"/>
+			<text x="16" y="20" class="st3 st15">TRAY</text>
+			<text x="16" y="35" class="st8 st16">+ alert sounds</text>
+		</g>
+		<g transform="translate(456 0)">
+			<rect class="st9" x="0" y="0" width="140" height="46" rx="12"/>
+			<text x="16" y="20" class="st3 st15">TCI</text>
+			<text x="16" y="35" class="st8 st16">JSON API</text>
 		</g>
 	</g>
 </g>

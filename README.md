@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="NetShecan — a desktop monitor that shows your remaining, used and total data for Irancell, Shatel and MCI, auto-refreshing without manual re-login">
+  <img src="./assets/readme/hero.svg" width="100%" alt="NetShecan — a desktop monitor that shows remaining, used and total data for Irancell, Shatel, MCI and TCI, auto-refreshing without manual re-login">
 </p>
 
 <p align="center">
-  <strong>Remaining · used · total</strong> data for <strong>Irancell</strong>, <strong>Shatel</strong> and <strong>MCI</strong> in one small desktop app — that <strong>keeps itself logged in</strong>.
+  <strong>Remaining · used · total</strong> data for <strong>Irancell</strong>, <strong>Shatel</strong>, <strong>MCI</strong> and <strong>TCI</strong> in one small desktop app — that <strong>keeps itself logged in</strong>.
 </p>
 
 ---
@@ -36,7 +36,7 @@ Each provider exposes a short-lived *access token* and a longer-lived *refresh t
 | MCI | 30 min | ~30 days | ~30 days |
 | TCI | JWT | rotated by refresh | portal-managed |
 
-Only MCI eventually needs a re-login (about once a month) — and the bundled Chrome extension makes re-seeding a single click.
+MCI may eventually need a re-login (about once a month); TCI tokens are managed by its portal. In either case, the bundled Chrome extension makes re-seeding a single click.
 
 ---
 
@@ -112,6 +112,7 @@ A per-provider setting that controls what the headline remaining number counts:
 
 - **Irancell / MCI** (default **OFF**): the main (non-gift) package only.
 - **Shatel** (default **ON**): the base plan plus all additional traffic packages.
+- **TCI**: the active ADSL plan only; TCI does not expose an original allowance for extra traffic packages.
 
 Individual packages always appear under **OTHER PACKAGES**, regardless of this setting.
 
