@@ -119,7 +119,7 @@ Individual packages always appear under **OTHER PACKAGES**, regardless of this s
 
 ## Auth flows
 
-Full, up-to-date authentication and token-refresh documentation for all three providers lives in **[`NetShecan-AuthFlow.md`](./NetShecan-AuthFlow.md)** — including the OTP login steps, refresh requests, data endpoints, and token storage keys.
+Full, up-to-date authentication and token-refresh documentation for all four providers lives in **[`NetShecan-AuthFlow.md`](./NetShecan-AuthFlow.md)** — including the OTP login steps, refresh requests, data endpoints, and token storage keys.
 
 ---
 
