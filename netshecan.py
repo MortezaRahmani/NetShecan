@@ -1287,10 +1287,12 @@ class NetShecanApp:
             self.cfg["provider"] = key
             self._save_config()
             self.provider = PROVIDERS[key](self)
+            self.switcher_row.controls = self._switcher_controls()
             _close_paste_confirm()
             prov_dd.value = key
             rebuild_provider_fields(key)
             self.dlg.update()
+            self.refresh()
 
         f_poll = field("Auto Check Interval (minutes)",
                        str(self.cfg.get("poll_seconds", 300) // 60))
