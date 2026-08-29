@@ -71,20 +71,14 @@
     };
   }
 
-  function asciiDigits(value) {
-    return String(value).replace(/[۰-۹٠-٩]/g, function (digit) {
-      const code = digit.charCodeAt(0);
-      return String(code >= 0x06F0 ? code - 0x06F0 : code - 0x0660);
-    });
-  }
-
   function buildTci() {
-    const match = document.body.innerText.match(/\(([\d۰-۹٠-٩]+)\)/);
-    if (!match) return null;
+    const accessToken = localStorage.getItem("access_token");
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (!accessToken || !refreshToken) return null;
     return {
       provider: "tci",
-      username: asciiDigits(match[1]),
-      panel_url: "https://internet.tci.ir/panel/",
+      access_token: accessToken,
+      refresh_token: refreshToken,
     };
   }
 
@@ -93,7 +87,7 @@
     if (host === "my.irancell.ir") return buildIrancell();
     if (host === "beta.my.shatel.ir") return buildShatel();
     if (host === "my.mci.ir") return buildMci();
-    if (host === "internet.tci.ir" || host === "adsl.tci.ir") return buildTci();
+    if (host === "my.tci.ir") return buildTci();
     return null;
   }
 
