@@ -124,16 +124,16 @@ Full, up-to-date authentication and token-refresh documentation for all four pro
 
 ---
 
-## Building a portable executable
+## Building a portable Windows release
 
-A PyInstaller spec is included.
+NetShecan uses Flet's native Windows packaging so the release includes the desktop runtime and works offline on a newly installed Windows PC. Install the Windows build prerequisites from the [Flet Windows packaging guide](https://flet.dev/docs/publish/windows/), then run:
 
 ```bash
-pip install -r requirements.txt pyinstaller
-pyinstaller NetShecan.spec --noconfirm --clean
+pip install -r requirements.txt
+flet build windows --output dist/NetShecan
 ```
 
-Output: `dist/NetShecan.exe`. Keep `dist/config.json` next to it — that is where the app reads and writes your settings. The spec does **not** embed `config.json`, so your tokens are never baked into the executable.
+Distribute the entire `dist/NetShecan/` directory (or zip its contents). Start `NetShecan.exe` from that directory and keep `config.json` next to it — this is where the app reads and writes your settings. The build never embeds `config.json`, so your tokens are not included in the release.
 
 ---
 
@@ -142,7 +142,8 @@ Output: `dist/NetShecan.exe`. Keep `dist/config.json` next to it — that is whe
 ```
 netshecan.py                      # main app (Flet UI + providers)
 test_netshecan.py                 # unit tests
-NetShecan.spec                    # PyInstaller build config
+pyproject.toml                    # Flet self-contained Windows build config
+NetShecan.spec                    # legacy PyInstaller build config (not used for releases)
 version_info.txt                  # Windows version metadata
 config.example.json               # template config (no real tokens)
 NetShecan-AuthFlow.md             # provider auth documentation
