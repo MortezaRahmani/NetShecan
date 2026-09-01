@@ -11,8 +11,14 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request
 
+from pip_system_certs.wrapt_requests import inject_truststore
+
 import flet as ft
 from persiantools.jdatetime import JalaliDateTime
+
+# PyInstaller does not process pip-system-certs' .pth startup hook.  Activate
+# its Windows certificate-store integration before Flet downloads its client.
+inject_truststore()
 
 # Bypass any system/registry/env proxy so this app always connects directly
 # (my.irancell.ir / gateway.shatel.ir and Shecan are reached directly).

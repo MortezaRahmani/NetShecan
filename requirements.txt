@@ -2,3 +2,4 @@ flet
 pystray
 Pillow
 persiantools==6.2.0
+pip-system-certs==5.3
