@@ -14,9 +14,9 @@ Mobile and fixed-line data plans hide your quota behind login walls and short-li
 
 - **Live dashboard** — a big remaining-data ring plus USED / TOTAL cards and the expiry date.
 - **Multiple providers** — Irancell, Shatel (MyShatel), MCI (Hamrah-e-Aval), and TCI, switchable from the main screen.
-- **Automatic refresh** — stores a long-lived refresh token and exchanges it for a fresh access token before it expires.
+- **Automatic refresh** — stores a long-lived refresh token and exchanges it for a fresh access token before it expires; optionally checks Shecan immediately afterward.
 - **Other packages** — gift / extra data packages shown separately with their own remaining values.
-- **Low-data alert** — plays a sound and brings the window forward below your threshold.
+- **Low-data alert** — plays a sound and restores a hidden/minimized window without stealing focus below your threshold.
 - **Tray support** — minimize to the system tray; optional Shecan DNS status check.
 
 ---
@@ -112,7 +112,7 @@ A per-provider setting that controls what the headline remaining number counts:
 
 - **Irancell / MCI** (default **OFF**): the main (non-gift) package only.
 - **Shatel** (default **ON**): the base plan plus all additional traffic packages.
-- **TCI**: the active ADSL plan only; TCI does not expose an original allowance for extra traffic packages.
+- **TCI**: the active ADSL plan plus its currently available extra traffic, shown separately under **OTHER PACKAGES**.
 
 Individual packages always appear under **OTHER PACKAGES**, regardless of this setting.
 
