@@ -876,7 +876,7 @@ class NetShecanApp:
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=0,
-            alignment=ft.MainAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             scroll=ft.ScrollMode.AUTO,
         )
 
