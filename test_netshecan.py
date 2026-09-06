@@ -294,6 +294,23 @@ class TciProviderTest(unittest.TestCase):
         self.assertRegex(data["active_offers"][0]["name"], r"^\d+ Days - 255GB$")
         self.assertEqual(data["active_offers"][0]["expiry_date"], "2026-09-30")
 
+    def test_clamps_negative_credit_and_includes_extra_traffic(self):
+        prov = app.TciProvider(None)
+        cfg = {"access_token": "AT", "refresh_token": "RT"}
+        services = {"data": [{"tel_number": "02100000000", "active_adsl_service": True}]}
+        detail = {"acc_info": {
+            "credit": -20, "deposit": 29030.08, "expireDateTime": "14050718T200941",
+            "activeService": {"baseTraffic": 261120},
+        }}
+        with patch.object(prov, "ensure_token"), \
+             patch.object(prov, "_get", side_effect=[services, detail]):
+            data = prov.fetch(cfg)
+
+        self.assertEqual(data["active_offers"][0]["global_data_remaining"], 0)
+        self.assertEqual(data["active_offers"][1]["name"], "Extra Traffic - 28GB")
+        self.assertAlmostEqual(data["aggregate_remaining_mb"], 29030.08)
+        self.assertAlmostEqual(data["aggregate_total_mb"], 261120 + 29030.08)
+
     def test_refreshes_tokens(self):
         class FakeApp:
             def __init__(self):

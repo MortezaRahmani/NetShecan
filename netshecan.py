@@ -512,23 +512,33 @@ class TciProvider:
         account = detail.get("acc_info") or {}
         customer_plan = (detail.get("customer_info") or {}).get("activeService") or {}
         plan = account.get("activeService") or customer_plan
-        remaining_mb = account.get("credit")
+        remaining_mb = max(account.get("credit") or 0, 0)
+        extra_mb = max(account.get("deposit") or 0, 0)
         total_mb = plan.get("baseTraffic")
         expiry_dt = _tci_expiry(account.get("expireDateTime"))
-        if remaining_mb is None or total_mb is None:
+        if total_mb is None:
             raise ValueError("TCI returned incomplete traffic data.")
+        offers = [{
+            "name": self._offer_name(total_mb, expiry_dt),
+            "is_gift": False,
+            "global_data_remaining": remaining_mb,
+            "total_amount": total_mb,
+            "expiry_date": expiry_dt.date().isoformat() if expiry_dt else "",
+        }]
+        if extra_mb:
+            offers.append({
+                "name": f"Extra Traffic - {round(extra_mb / 1024)}GB",
+                "is_gift": False,
+                "global_data_remaining": extra_mb,
+                "total_amount": extra_mb,
+                "expiry_date": expiry_dt.date().isoformat() if expiry_dt else "",
+            })
         return {
             "provider_name": "TCI",
-            "active_offers": [{
-                "name": self._offer_name(total_mb, expiry_dt),
-                "is_gift": False,
-                "global_data_remaining": remaining_mb,
-                "total_amount": total_mb,
-                "expiry_date": expiry_dt.date().isoformat() if expiry_dt else "",
-            }],
+            "active_offers": offers,
             "main_index": 0,
-            "aggregate_remaining_mb": remaining_mb,
-            "aggregate_total_mb": total_mb,
+            "aggregate_remaining_mb": remaining_mb + extra_mb,
+            "aggregate_total_mb": total_mb + extra_mb,
         }
 
 
