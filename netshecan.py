@@ -839,6 +839,7 @@ class NetShecanApp:
         self.status_text = ft.Text("", size=10, color=MUTED)
         bottom = ft.Column(
             [
+                ft.Container(height=12),
                 ft.Row(
                     [
                         self._btn("Refresh Data", ft.Icons.REFRESH, self._on_refresh_click,
@@ -856,20 +857,20 @@ class NetShecanApp:
 
         middle = ft.Column(
             [
-                ft.Container(height=6),
+                ft.Container(height=4),
                 ft.Row([self.provider_icon, self.provider_text], spacing=4,
                        alignment=ft.MainAxisAlignment.CENTER),
-                ft.Container(height=8),
+                ft.Container(height=6),
                 self.switcher_row,
-                ft.Container(height=10),
-                self.name_text,
-                ft.Container(height=10),
-                hero,
                 ft.Container(height=8),
+                self.name_text,
+                ft.Container(height=8),
+                hero,
+                ft.Container(height=6),
                 self.sub_text,
-                ft.Container(height=12),
+                ft.Container(height=8),
                 stats_row,
-                ft.Container(height=10),
+                ft.Container(height=8),
                 expiry_row,
                 ft.Divider(color=TRACK, height=18),
                 others_card,
