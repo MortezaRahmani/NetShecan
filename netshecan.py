@@ -604,8 +604,7 @@ class NetShecanApp:
         self._startup = True
         page.window.on_event = self._on_window_event
         self._build()
-        self.check_shecan()
-        self.refresh()
+        self.refresh(with_shecan=True)
         threading.Thread(target=self._poll, daemon=True).start()
         page.window.visible = True
         page.update()
@@ -1041,25 +1040,25 @@ class NetShecanApp:
         data = prov.fetch(cfg["providers"][key])
         return data
 
-    def refresh(self):
+    def refresh(self, with_shecan=False):
         if self.busy:
             return
         self.busy = True
         self.status_text.value = "Updating..."
         self.status_text.color = MUTED
         self.page.update()
-        threading.Thread(target=self._work, args=(dict(self.cfg),), daemon=True).start()
+        threading.Thread(target=self._work, args=(dict(self.cfg), with_shecan), daemon=True).start()
 
-    def _work(self, cfg):
+    def _work(self, cfg, with_shecan=False):
         try:
             data = self._fetch(cfg)
-            self._run_on_ui(self._render, data, None)
+            self._run_on_ui(self._render, data, None, with_shecan)
         except HTTPError as e:
             msg = "Session expired - open Settings and paste a new token." if e.code == 401 \
                 else f"HTTP error {e.code}"
-            self._run_on_ui(self._render, None, msg)
+            self._run_on_ui(self._render, None, msg, with_shecan)
         except Exception as e:
-            self._run_on_ui(self._render, None, _error_text(e))
+            self._run_on_ui(self._render, None, _error_text(e), with_shecan)
 
     def _on_refresh_click(self, e):
         self.refresh()
@@ -1117,9 +1116,9 @@ class NetShecanApp:
             except (TypeError, ValueError):
                 seconds = 120
             time.sleep(seconds)
-            self._run_on_ui(self.refresh)
+            self._run_on_ui(self.refresh, True)
 
-    def _render(self, data, error):
+    def _render(self, data, error, with_shecan=False):
         self.busy = False
         if error:
             if not self._has_data:
@@ -1128,6 +1127,8 @@ class NetShecanApp:
             self.status_text.value = f"Update failed {time.strftime('%H:%M:%S')}: {error}"
             self.status_text.color = DANGER
             self.page.update()
+            if with_shecan:
+                self.check_shecan()
             return
 
         offers = data["active_offers"]
@@ -1169,6 +1170,8 @@ class NetShecanApp:
         self._check_usage_alert(data["aggregate_remaining_mb"])
         self._stamp()
         self.page.update()
+        if with_shecan:
+            self.check_shecan()
 
     def _stamp(self):
         self.status_text.value = f"Updated {time.strftime('%H:%M:%S')}"
@@ -1392,9 +1395,7 @@ class NetShecanApp:
             self.page.update()
             check = self.cfg.get("check_shecan", True) and bool(self.cfg.get("shecan_url", "").strip())
             self.shecan_section.visible = check
-            if check:
-                self.check_shecan()
-            self.refresh()
+            self.refresh(with_shecan=check)
 
         def cancel(e):
             self.dlg.open = False

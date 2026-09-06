@@ -44,6 +44,16 @@ class RefreshIsolationTest(unittest.TestCase):
         self.assertTrue(ui.busy)
         thread.return_value.start.assert_called_once_with()
 
+    def test_auto_refresh_schedules_shecan_after_provider_data(self):
+        ui = object.__new__(app.NetShecanApp)
+        ui._fetch = Mock(return_value={"provider_name": "MCI"})
+        ui._run_on_ui = Mock()
+
+        ui._work({"provider": "mci"}, with_shecan=True)
+
+        self.assertEqual(ui._run_on_ui.call_args.args[1:],
+                         ({"provider_name": "MCI"}, None, True))
+
 
 class PrettyNameTest(unittest.TestCase):
     def test_english_days_name(self):
