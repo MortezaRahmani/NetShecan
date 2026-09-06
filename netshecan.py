@@ -735,7 +735,8 @@ class NetShecanApp:
         return controls
 
     def _build(self):
-        self.provider_icon = ft.Image(src=self._provider_icon(""),
+        self.provider_icon = ft.Image(src=self._provider_icon(self.cfg.get("provider", ""))
+                                      or self._provider_icon("irancell"),
                                       width=16, height=16, fit=ft.BoxFit.CONTAIN)
         self.provider_text = ft.Text("--", size=10, weight=ft.FontWeight.W_700,
                                      color=BLUE)
