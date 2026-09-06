@@ -1,6 +1,6 @@
 import json
 import unittest
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 from urllib.error import URLError
 
 import netshecan as app
@@ -27,6 +27,22 @@ class NetworkRetryTest(unittest.TestCase):
 
         self.assertEqual(opener.calls, 3)
         self.assertEqual(sleep.call_args_list, [call(1.0), call(2.0)])
+
+
+class RefreshIsolationTest(unittest.TestCase):
+    def test_provider_refresh_runs_while_shecan_is_checking(self):
+        ui = object.__new__(app.NetShecanApp)
+        ui.busy = False
+        ui._shecan_busy = True
+        ui.cfg = {"provider": "mci"}
+        ui.status_text = Mock()
+        ui.page = Mock()
+
+        with patch.object(app.threading, "Thread") as thread:
+            ui.refresh()
+
+        self.assertTrue(ui.busy)
+        thread.return_value.start.assert_called_once_with()
 
 
 class PrettyNameTest(unittest.TestCase):

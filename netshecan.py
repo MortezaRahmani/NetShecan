@@ -60,8 +60,8 @@ except ImportError:
 
 CONFIG = os.path.join(os.path.dirname(sys.executable), "config.json") \
     if getattr(sys, "frozen", False) else "config.json"
-WIN_W = 384
-WIN_H = 680
+WIN_W = 430
+WIN_H = 820
 
 # --- Design tokens (OLED dark / midnight-blue data dashboard) ---
 BG = "#0B2432"
@@ -604,6 +604,7 @@ class NetShecanApp:
         self._startup = True
         page.window.on_event = self._on_window_event
         self._build()
+        self.check_shecan()
         self.refresh()
         threading.Thread(target=self._poll, daemon=True).start()
         page.window.visible = True
@@ -810,23 +811,43 @@ class NetShecanApp:
 
         shecan_url = self.cfg.get("shecan_url", "").strip()
         check_shecan = self.cfg.get("check_shecan", True)
-        self.shecan_text = ft.Text("Shecan: checking..." if (check_shecan and shecan_url) else "",
-                                   size=10, color=MUTED, visible=bool(check_shecan and shecan_url))
+        shecan_enabled = bool(check_shecan and shecan_url)
+        self.shecan_text = ft.Text("Shecan: checking..." if shecan_enabled else "",
+                                   size=18, color=MUTED)
+        self.shecan_status_icon = ft.Icon(ft.Icons.HOURGLASS_EMPTY, size=20, color=MUTED)
+        self.shecan_refresh_button = ft.IconButton(
+            icon=ft.Icons.REFRESH,
+            icon_color=ACCENT,
+            icon_size=20,
+            tooltip="Refresh Shecan status",
+            on_click=self._on_shecan_refresh_click,
+        )
+        self.shecan_section = ft.Column(
+            [
+                ft.Divider(color=TRACK, height=18),
+                ft.Row(
+                    [self.shecan_text, self.shecan_status_icon, self.shecan_refresh_button],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=6,
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=0,
+            visible=shecan_enabled,
+        )
         self.status_text = ft.Text("", size=10, color=MUTED)
         bottom = ft.Column(
             [
                 ft.Row(
                     [
-                        self._btn("Refresh", ft.Icons.REFRESH, self._on_refresh_click,
+                        self._btn("Refresh Data", ft.Icons.REFRESH, self._on_refresh_click,
                                   primary=True),
-                        self._btn("Settings", ft.Icons.SETTINGS, self.open_settings),
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=10,
                 ),
-                ft.Container(height=6),
-                self.shecan_text,
-                ft.Container(height=2),
+                self.shecan_section,
+                ft.Container(height=4),
                 self.status_text,
             ],
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -874,18 +895,24 @@ class NetShecanApp:
     def _header(self):
         return ft.Row(
             [
-                ft.Text("NetShecan", size=16, weight=ft.FontWeight.W_700,
-                        color=TEXT),
-                ft.Container(
-                    ft.Row(
-                        [ft.Icon(ft.Icons.CIRCLE, size=8, color=GREEN),
-                         ft.Text("LIVE", size=9, weight=ft.FontWeight.W_700, color=GREEN)],
-                        spacing=5,
-                    ),
-                    padding=ft.Padding.symmetric(horizontal=9, vertical=4),
-                    border_radius=12,
-                    bgcolor=ft.Colors.with_opacity(0.10, GREEN),
+                ft.Row(
+                    [
+                        ft.Text("NetShecan", size=16, weight=ft.FontWeight.W_700, color=TEXT),
+                        ft.Container(
+                            ft.Row(
+                                [ft.Icon(ft.Icons.CIRCLE, size=8, color=GREEN),
+                                 ft.Text("LIVE", size=9, weight=ft.FontWeight.W_700, color=GREEN)],
+                                spacing=5,
+                            ),
+                            padding=ft.Padding.symmetric(horizontal=9, vertical=4),
+                            border_radius=12,
+                            bgcolor=ft.Colors.with_opacity(0.10, GREEN),
+                        ),
+                    ],
+                    spacing=10,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
+                self._btn("Settings", ft.Icons.SETTINGS, self.open_settings),
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1014,7 +1041,7 @@ class NetShecanApp:
         return data
 
     def refresh(self):
-        if self.busy or self._shecan_busy:
+        if self.busy:
             return
         self.busy = True
         self.status_text.value = "Updating..."
@@ -1036,6 +1063,9 @@ class NetShecanApp:
     def _on_refresh_click(self, e):
         self.refresh()
 
+    def _on_shecan_refresh_click(self, e):
+        self.check_shecan()
+
     def check_shecan(self):
         if not self.cfg.get("check_shecan", True):
             return
@@ -1045,6 +1075,9 @@ class NetShecanApp:
         self._shecan_busy = True
         self.shecan_text.value = "Shecan: checking..."
         self.shecan_text.color = MUTED
+        self.shecan_status_icon.icon = ft.Icons.HOURGLASS_EMPTY
+        self.shecan_status_icon.color = MUTED
+        self.shecan_refresh_button.disabled = True
         self.page.update()
         threading.Thread(target=self._shecan_work, args=(url,), daemon=True).start()
 
@@ -1062,14 +1095,16 @@ class NetShecanApp:
                     ok = r.read().decode("utf-8", "replace").strip() == "2"
             except Exception:
                 ok = False
-        text = f"Shecan: {ip} \u2705" if ok else \
-               (f"Shecan: {ip} \u274c" if ip else "Shecan: unreachable \u274c")
+        text = f"Shecan: {ip}" if ip else "Shecan: unreachable"
         self._run_on_ui(self._set_shecan, text, GREEN if ok else DANGER, ok)
 
     def _set_shecan(self, text, color, ok=None):
         self._shecan_busy = False
         self.shecan_text.value = text
         self.shecan_text.color = color
+        self.shecan_status_icon.icon = ft.Icons.CHECK_CIRCLE if ok else ft.Icons.CANCEL
+        self.shecan_status_icon.color = color
+        self.shecan_refresh_button.disabled = False
         if ok is not None:
             self._check_shecan_alert(ok)
         self.page.update()
@@ -1092,7 +1127,6 @@ class NetShecanApp:
             self.status_text.value = f"Update failed {time.strftime('%H:%M:%S')}: {error}"
             self.status_text.color = DANGER
             self.page.update()
-            self.check_shecan()
             return
 
         offers = data["active_offers"]
@@ -1134,7 +1168,6 @@ class NetShecanApp:
         self._check_usage_alert(data["aggregate_remaining_mb"])
         self._stamp()
         self.page.update()
-        self.check_shecan()
 
     def _stamp(self):
         self.status_text.value = f"Updated {time.strftime('%H:%M:%S')}"
@@ -1357,7 +1390,9 @@ class NetShecanApp:
             self.dlg.open = False
             self.page.update()
             check = self.cfg.get("check_shecan", True) and bool(self.cfg.get("shecan_url", "").strip())
-            self.shecan_text.visible = check
+            self.shecan_section.visible = check
+            if check:
+                self.check_shecan()
             self.refresh()
 
         def cancel(e):
