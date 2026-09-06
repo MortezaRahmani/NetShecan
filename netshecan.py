@@ -429,6 +429,7 @@ class MciProvider:
         }
         data = self._get(self.API, headers)
         offers = []
+        main_index = None
         for item in data.get("packageItems") or []:
             if item.get("type") != "internet":
                 continue
@@ -441,9 +442,12 @@ class MciProvider:
                 "total_amount": total_mb,
                 "expiry_date": (item.get("expireTime") or "")[:10],
             })
+            if main_index is None and item.get("packageStatus") == "active":
+                main_index = len(offers) - 1
         if not offers:
             raise ValueError("No active internet packages returned by MCI.")
-        main = offers[0]
+        main_index = 0 if main_index is None else main_index
+        main = offers[main_index]
         if cfg.get("include_additional_packages", False):
             agg_rem = _mci_to_mb(data.get("totalUnusedBytes", 0), data.get("bytesUnusedUnit"))
             agg_tot = _mci_to_mb(data.get("totalInitBytes", 0), data.get("bytesInitUnit"))
@@ -452,7 +456,7 @@ class MciProvider:
         return {
             "provider_name": "MCI",
             "active_offers": offers,
-            "main_index": 0,
+            "main_index": main_index,
             "aggregate_remaining_mb": agg_rem,
             "aggregate_total_mb": agg_tot,
         }

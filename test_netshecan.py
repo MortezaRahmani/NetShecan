@@ -200,6 +200,26 @@ class MciProviderTest(unittest.TestCase):
         self.assertAlmostEqual(data["aggregate_total_mb"], 2.01 * 1024)
         self.assertTrue(data["aggregate_remaining_mb"] < data["aggregate_total_mb"])
 
+    def test_reserved_package_does_not_replace_active_package(self):
+        prov = app.MciProvider(None)
+        cfg = {"access_token": "x", "refresh_token": "rt", "username": "9121112233"}
+        payload = {"packageItems": [
+            {"type": "internet", "packageStatus": "reserve",
+             "totalInitValue": 80, "totalUnusedValue": 80,
+             "totalUnitName": "گیگ", "unUsedUnitName": "گیگ"},
+            {"type": "internet", "packageStatus": "active",
+             "totalInitValue": 80.06, "totalUnusedValue": 6.5,
+             "totalUnitName": "گیگ", "unUsedUnitName": "گیگ",
+             "expireTime": "2026-11-22T13:49:44"},
+        ]}
+
+        with patch.object(prov, "_get", return_value=payload), \
+             patch.object(prov, "ensure_token"):
+            data = prov.fetch(cfg)
+
+        self.assertEqual(data["main_index"], 1)
+        self.assertAlmostEqual(data["aggregate_remaining_mb"], 6.5 * 1024)
+
     def test_aggregate_respects_unit_fields(self):
         prov = app.MciProvider(None)
         cfg = {"access_token": "x", "refresh_token": "rt", "username": "9121112233",
