@@ -662,11 +662,22 @@ class NetShecanApp:
 
         self.page.run_task(_restore)
 
+    def _restore_in_background(self):
+        self._stop_tray()
+
+        async def _restore():
+            self.page.window.visible = True
+            if self.page.window.minimized:
+                self.page.window.minimized = False
+            self.page.update()
+
+        self.page.run_task(_restore)
+
     def _fire_alert(self, audio):
         if self._startup:
-            threading.Timer(3.0, self._bring_to_front).start()
+            threading.Timer(3.0, self._restore_in_background).start()
         else:
-            self._bring_to_front()
+            self._restore_in_background()
         threading.Thread(target=play_mp3,
                          args=(os.path.join(base_path(), audio),), daemon=True).start()
 

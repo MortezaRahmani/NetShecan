@@ -55,6 +55,21 @@ class RefreshIsolationTest(unittest.TestCase):
                          ({"provider_name": "MCI"}, None, True))
 
 
+class AlertRestoreTest(unittest.TestCase):
+    def test_alert_restores_without_foregrounding(self):
+        ui = object.__new__(app.NetShecanApp)
+        ui._startup = False
+
+        with patch.object(ui, "_restore_in_background") as restore, \
+             patch.object(ui, "_bring_to_front") as foreground, \
+             patch.object(app.threading, "Thread") as thread:
+            ui._fire_alert("assets/audio/alert.mp3")
+
+        restore.assert_called_once_with()
+        foreground.assert_not_called()
+        thread.return_value.start.assert_called_once_with()
+
+
 class PrettyNameTest(unittest.TestCase):
     def test_english_days_name(self):
         self.assertEqual(app.pretty_name("30Days 20GB"), "30 Days - 20GB")
